@@ -24,7 +24,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "keypad.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
