@@ -1,5 +1,5 @@
 #include "tone.h"
-
+#include <stdio.h>
 // DTMF Tone Matrix
 // fb/fa  1209 Hz 1336 Hz 1477 Hz 1633 Hz
 // 697 Hz 1       2       3       A
@@ -7,8 +7,10 @@
 // 852 Hz 7       8       9       C
 // 941 Hz *       0       #       D
 
-#define SAMPLE_COUNT 128
-#define FACTOR ((float)SAMPLE_COUNT / 62500.0)
+#define FACTOR ((double)(SAMPLE_COUNT * QUANT) / (double)FCK)
+
+#define DEBUG(msg, ...) printf(msg, __VA_ARGS__)
+#define DEBUG 
 
 static const int samples[SAMPLE_COUNT] = {
     64, 67,
@@ -84,21 +86,21 @@ static inline int getSample(const uint8_t pos)
         return samples[pos];
 }
 
-static float faSteps[4] = {
+static double faSteps[4] = {
     697 * FACTOR,
     770 * FACTOR,
     852 * FACTOR,
     941 * FACTOR
 };
 
-static float fbSteps[4] = {
+static double fbSteps[4] = {
     1209 * FACTOR,
     1336 * FACTOR,
     1477 * FACTOR,
     1633 * FACTOR
 };
 
-static inline float getFaStep(const char ch)
+static inline double getFaStep(const char ch)
 {
     switch (ch)
     {
@@ -127,7 +129,7 @@ static inline float getFaStep(const char ch)
     }
 }
 
-static inline float getFbStep(const char ch)
+static inline double getFbStep(const char ch)
 {
     switch (ch)
     {
@@ -156,39 +158,42 @@ static inline float getFbStep(const char ch)
     }
 }
 
-static float posA = 0;
-static float posB = 0;
-static float stepA = 0;
-static float stepB = 0;
+static double posA = 0.;
+static double posB = 0.;
+static double stepA = 0.;
+static double stepB = 0.;
 
 int tone_pwm_overflow_cb()
 {
-    static uint8_t actualPosA;
-    static uint8_t actualPosB;
+    uint8_t actualPosA = 0;
+    uint8_t actualPosB = 0;
 
     posA += stepA;
     posB += stepB;
 
-    actualPosA = (uint8_t)((int64_t)posA % SAMPLE_COUNT);
-    actualPosB = (uint8_t)((int64_t)posB % SAMPLE_COUNT);
+    actualPosA = (uint8_t)((uint8_t)posA % SAMPLE_COUNT);
+    actualPosB = (uint8_t)((uint8_t)posB % SAMPLE_COUNT);
 
-    tone_pwm_setDuty(getSample(actualPosA) + (getSample(actualPosB) - (getSample(actualPosB) >> 2)));
+    DEBUG("Step B %f\n", stepB);
+    DEBUG("Pos A %f / %u\n", posA, actualPosA);
+    DEBUG("Pos A %f / %u\n", posB, actualPosB);
 
+    uint8_t duty = getSample(actualPosA) + (getSample(actualPosB) - (getSample(actualPosB) >> 2));
+    tone_pwm_setDuty(duty);
+
+    DEBUG("%i,\n", getSample(actualPosA));
     return 0;
 }
 
 int tone_init()
 {
-    tone_pwm_stop();
+    tone_stop();
 
-    posA = 0;
-    posB = 0;
-    stepA = 0;
-    stepB = 0;
-
-    for (int i = 0; i < 4; i++)
-    {
-    }
+    DEBUG("Factor %f\n", FACTOR);
+    DEBUG("X697 = %f\n", faSteps[0]);
+    DEBUG("X770 = %f\n", faSteps[1]);
+    DEBUG("X852 = %f\n", faSteps[2]);
+    DEBUG("X941 = %f\n", faSteps[3]);
 
     return 0;
 }
@@ -207,6 +212,10 @@ int tone_play(const char ch)
 
 int tone_stop()
 {
+    posA = 0;
+    posB = 0;
+    stepA = 0;
+    stepB = 0;
     tone_pwm_stop();
     return 0;
 }
