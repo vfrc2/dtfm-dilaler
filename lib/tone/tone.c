@@ -9,8 +9,8 @@
 
 #define FACTOR ((double)(SAMPLE_COUNT * QUANT) / (double)FCK)
 
-#define DEBUG(msg, ...) printf(msg, __VA_ARGS__)
-#define DEBUG 
+// #define DEBUG(msg, ...) printf(msg, __VA_ARGS__)
+#define DEBUG(msg, ...)   
 
 static const int samples[SAMPLE_COUNT] = {
     64, 67,
@@ -163,7 +163,7 @@ static double posB = 0.;
 static double stepA = 0.;
 static double stepB = 0.;
 
-int tone_pwm_overflow_cb()
+inline int tone_pwm_overflow_cb()
 {
     uint8_t actualPosA = 0;
     uint8_t actualPosB = 0;
